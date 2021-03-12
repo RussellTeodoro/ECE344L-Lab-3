@@ -1,0 +1,307 @@
+#include <plib.h>
+/* ------------------------------------------------------------ */
+/*				Configuration Bits				                */
+/* ------------------------------------------------------------ */
+#pragma config ICESEL = ICS_PGx1
+#pragma config FPLLMUL = MUL_20, FPLLIDIV = DIV_2
+#pragma config POSCMOD = EC, FNOSC = PRIPLL, FPBDIV = DIV_8
+#define SYS_FREQ (80000000L)
+// SYSCLK = 80 MHz (8 MHz Crystal/ FPLLIDIV * FPLLMUL / FPLLODIV)
+// Primary Osc w/PLL (XT+,HS+,EC+PLL)
+// *** these are preconfigured on the MX7 Board for a clock frequency of 80MHz
+// *** and a PBCLK value of 10MHz.
+/* ------------------------------------------------------------ */
+/*				Forward Declarations							*/
+/* ------------------------------------------------------------ */
+void DeviceInit();
+void DelayInit();
+void DelayMs(int cms);
+int ManageState(int state);
+int Start(int state);
+void FiveCentsIn();
+void TenCentsIn();
+void FifteenCentsIn();
+void TwentyCentsIn();
+void TwentyfiveCentsIn();
+void ThirtyfivecentsIn();
+/* ------------------------------------------------------------ */
+/*				Definitions										*/
+/* ------------------------------------------------------------ */
+#define	cntMsDelay		10000			//timer 1 delay for 1ms
+static int LEDsState 	=	0x0000;
+static int Change 		=	0x00;
+/* ------------------------------------------------------------ */
+/*				Main											*/
+/* ------------------------------------------------------------ */
+int main()
+{
+	DeviceInit(); 
+	DelayInit(); //initialize timer for delay
+	while (1) 
+	{
+		//Initialize the loop
+		ManageState(LEDsState);
+		DelayMs(2);
+	}
+}
+
+int ManageState(int state){
+	PORTClearBits(IOPORT_G, BIT_12|BIT_13| BIT_14|BIT_15);
+	int a = 0;
+	switch(state)
+	{	
+		case 0x0001:
+			FiveCentsIn();
+			break;
+		case 0x0010:
+			TenCentsIn();
+			break;
+		case 0x0011:
+			FifteenCentsIn();
+			break;
+		case 0x0100:
+			TwentyCentsIn();
+			break;
+		case 0x0101:
+			TwentyfiveCentsIn();
+			break;
+		case 0x0000:
+			a=Start(0x00);
+			break;
+		default:
+			a=Start(Change);
+			break;
+	}
+		return a;
+}
+
+
+
+int Start(int state) {
+	int button_in = 0;
+	int button_in3 = 0;
+	while(1){
+		button_in = PORTReadBits (IOPORT_G, BIT_6|BIT_7);
+		button_in3 = PORTReadBits (IOPORT_A, BIT_0);
+		switch(state) {		
+			case 0x00 :
+				if (button_in != 0) {
+					if ((button_in & 0x0040) != 0) 
+						{	// BTN1 pressed?
+						LEDsState = 0x0001 ;
+						break;
+					}
+	
+					if ((button_in & 0x0080) != 0)
+						{// BTN2 pressed?
+						LEDsState = 0x0010 ;
+						break;
+						}
+					}
+					break;
+				
+		
+
+			// Dispense without change
+			case 0x01 :
+				PORTWrite (IOPORT_G, BIT_15);
+				DelayMs(3);
+				PORTClearBits(IOPORT_G, BIT_12|BIT_13| BIT_14|BIT_15);
+				Change = 0x00;
+				LEDsState = 0x0000;
+				break;
+		// Dispense with change
+			case 0x10 :
+				PORTWrite (IOPORT_G, BIT_12| BIT_13| BIT_14|BIT_15);
+				DelayMs(3);
+				PORTClearBits(IOPORT_G, BIT_12|BIT_13| BIT_14);
+				DelayMs(3);
+				PORTClearBits(IOPORT_G, BIT_12|BIT_13| BIT_14 | BIT_15);
+				Change = 0x00;
+				LEDsState = 0x1000;
+				break;
+			
+		}	
+			if (state!=LEDsState){
+				break;
+				}
+	}
+	return 0;
+}
+
+
+void FiveCentsIn(){
+	PORTWrite (IOPORT_G, BIT_12);
+	int button_in = 0;
+	int button_in3 = 0;
+	while(1){
+		button_in = PORTReadBits (IOPORT_G, BIT_6|BIT_7);
+		button_in3 = PORTReadBits (IOPORT_A, BIT_0);
+		if (button_in != 0) 		{
+			if ((button_in & 0x0040) != 0) {	// BTN1 pressed?
+				LEDsState = 0x0010 ;
+				break;					}
+		
+			if ((button_in & 0x0080) != 0)		// BTN2 pressed?
+				LEDsState = 0x0011 ;
+				break;
+	
+		}
+	
+
+			if (button_in3 !=0){
+				PORTWrite (IOPORT_G, BIT_12|BIT_13|BIT_14);
+				DelayMs(1);
+				PORTClearBits(IOPORT_G, BIT_12|BIT_13|BIT_14|BIT_15);
+				LEDsState = 0x0000;
+				break;
+			
+			}
+			}
+
+}	
+
+void TenCentsIn(){
+	PORTWrite (IOPORT_G, BIT_13);
+	int button_in = 0;
+	int button_in3 = 0;
+	while(1){
+		button_in = PORTReadBits (IOPORT_G, BIT_6|BIT_7);
+		button_in3 = PORTReadBits (IOPORT_A, BIT_0);
+		if (button_in != 0) 		{
+			if ((button_in & 0x0040) != 0) {	// BTN1 pressed?
+				LEDsState = 0x0011 ;
+				break;					}
+		
+			if ((button_in & 0x0080) != 0)		// BTN2 pressed?
+				LEDsState = 0x0100 ;
+				break;	
+
+	}
+			if (button_in3 !=0){
+				PORTWrite (IOPORT_G, BIT_12|BIT_13|BIT_14);
+				DelayMs(1);
+				PORTClearBits(IOPORT_G, BIT_12|BIT_13|BIT_14|BIT_15);
+				LEDsState = 0x0000;
+				break;
+}
+}
+}
+
+void FifteenCentsIn(){
+	PORTWrite (IOPORT_G, BIT_12 | BIT_13);
+	int button_in = 0;
+	int button_in3 = 0;
+	while(1){
+		button_in = PORTReadBits (IOPORT_G, BIT_6|BIT_7);
+		button_in3 = PORTReadBits (IOPORT_A, BIT_0);
+		if (button_in != 0) 		{
+			if ((button_in & 0x0040) != 0) {	// BTN1 pressed?
+				LEDsState = 0x0100 ;
+				break;					}
+		
+			if ((button_in & 0x0080) != 0)		// BTN2 pressed?
+				LEDsState = 0x0101;
+			//	Change = 0x01;
+				break;	
+							
+		}
+		if (button_in3 !=0){
+			PORTWrite (IOPORT_G, BIT_12|BIT_13|BIT_14);
+			DelayMs(1);
+			PORTClearBits(IOPORT_G, BIT_12|BIT_13|BIT_14|BIT_15);
+			LEDsState = 0x0000;
+			break;
+	}
+}
+}
+
+void TwentyCentsIn(){
+	PORTWrite (IOPORT_G, BIT_14);
+	int button_in = 0;
+	int button_in3 = 0;
+	while(1){
+		button_in = PORTReadBits (IOPORT_G, BIT_6|BIT_7);
+		button_in3 = PORTReadBits (IOPORT_A, BIT_0);
+		if (button_in != 0) 		{
+			if ((button_in & 0x0040) != 0) {	// BTN1 pressed?
+				LEDsState = 0x0101 ;
+			//	Change = 0x01; // take this one out
+				break;					}
+		
+			if ((button_in & 0x0080) != 0)		// BTN2 pressed?
+				LEDsState = 0x1000;
+				Change = 0x01; 
+				break;	
+					
+		}
+
+	if (button_in3 !=0){
+			PORTWrite (IOPORT_G, BIT_12|BIT_13|BIT_14);
+			DelayMs(1);
+			PORTClearBits(IOPORT_G, BIT_12|BIT_13|BIT_14|BIT_15);
+			LEDsState = 0x0000;
+			break;
+}
+}
+}
+void TwentyfiveCentsIn(){
+	PORTWrite (IOPORT_G, BIT_12 | BIT_14);
+	int button_in = 0;
+	int button_in3 = 0;
+	while(1){
+		button_in = PORTReadBits (IOPORT_G, BIT_6|BIT_7);
+		button_in3 = PORTReadBits (IOPORT_A, BIT_0);
+		if (button_in != 0) {
+			if ((button_in & 0x0040) !=0) {
+				LEDsState = 0x1111;
+				Change = 0x01;
+				break;
+			}
+			if ((button_in & 0x0080) != 0)
+				LEDsState = 0x1111;
+				Change = 0x10;
+				break;
+			}
+		
+	if (button_in3 !=0){
+			PORTWrite (IOPORT_G, BIT_12|BIT_13|BIT_14);
+			DelayMs(1);
+			PORTClearBits(IOPORT_G, BIT_12|BIT_13|BIT_14|BIT_15);
+			LEDsState = 0x0000;
+			break;
+	
+}
+}
+}
+void DeviceInit()
+{
+	DDPCONbits.JTAGEN = 0;
+	PORTSetPinsDigitalOut (IOPORT_G, BIT_12|BIT_13| BIT_14|BIT_15);
+	PORTSetPinsDigitalIn (IOPORT_G, BIT_6 | BIT_7);
+	PORTSetPinsDigitalIn (IOPORT_A, BIT_0);
+	PORTClearBits(IOPORT_G, BIT_12|BIT_13| BIT_14|BIT_15);
+
+}
+
+
+void DelayInit()	
+{
+	unsigned int tcfg;
+	/* Configure Timer 1. This sets it up to count a 10Mhz with a period of 0xFFFF
+	*/
+	tcfg = T1_ON|T1_IDLE_CON|T1_SOURCE_INT|T1_PS_1_1|T1_GATE_OFF|T1_SYNC_EXT_OFF;
+	OpenTimer1(tcfg, 0xFFFF);
+
+}
+
+void DelayMs(int cms)
+{
+	int		ims;
+
+	for (ims=0; ims<cms; ims++) {
+		WriteTimer1(0);
+		while (ReadTimer1() < cntMsDelay);
+	}
+
+}		
